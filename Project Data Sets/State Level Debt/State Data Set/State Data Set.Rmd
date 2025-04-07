@@ -1,14 +1,9 @@
 ---
-title: "Project Graphs"
-output: github_document
-date: "2025-04-07"
+title: "Lab Name"
+author: "Author Name"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
 
 ```{r load-packages, message=FALSE}
 library(tidyverse)
@@ -18,12 +13,15 @@ library(scales)
 library(plotly)
 ```
 
+### Exercise 1
+
 ```{r}
 names(StateLevelDebt) <- gsub(" ", "_", names(StateLevelDebt))
 names(StateLevelDebt)
 names(StateLevelDebt) <- gsub(",", "", names(StateLevelDebt))
 names(StateLevelDebt)
 ```
+
 
 ```{r}
 state_data <- StateLevelDebt |>
@@ -68,6 +66,8 @@ state_data <- StateLevelDebt |>
   )
 ```
 
+
+
 ```{r}
 state_data <- state_data |>
   mutate(
@@ -101,6 +101,9 @@ p <- ggplot(state_data, aes(
 ggplotly(p, tooltip = "text")
 ```
 
+### Exercise 2
+
+
 ```{r}
 state_data <- state_data |>
   mutate(
@@ -127,14 +130,11 @@ ggplot(loan_long, aes(x = Group, y = DefaultRate, fill = Group)) +
          labs(
            title = "Distribution of Student Loan Default Rates by Group",
            x = "Group",
-           y = "Default Rate")
-```
-
-
-## Including Plots
-
-```{r pressure, echo=FALSE}
+           y = "Default Rate",
+           )
+         
 
 ```
 
+...
 
