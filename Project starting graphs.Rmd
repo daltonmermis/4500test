@@ -16,9 +16,11 @@ library(openintro)
 library(ggplot2)
 library(scales)
 library(plotly)
+library(readxl)
 ```
 
 ```{r}
+StateLevelDebt <- read_excel("Project Data Sets/State Level Debt/StateLevelDebt.xlsx")
 names(StateLevelDebt) <- gsub(" ", "_", names(StateLevelDebt))
 names(StateLevelDebt)
 names(StateLevelDebt) <- gsub(",", "", names(StateLevelDebt))
