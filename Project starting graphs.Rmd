@@ -122,14 +122,25 @@ loan_long <- state_data |>
     values_to = "DefaultRate"
   )
 
-ggplot(loan_long, aes(x = Group, y = DefaultRate, fill = Group)) +
-         geom_boxplot(alpha = 0.7) +
-         scale_y_continuous(labels = percent_format(accuracy = 0.1)) +
-         theme_minimal()+
-         labs(
-           title = "Distribution of Student Loan Default Rates by Group",
-           x = "Group",
-           y = "Default Rate")
+main_groups <- c("loan_white", "loan_colored", "loan_all")
+
+main_data <- loan_long %>% filter(Group %in% main_groups)
+extra_data <- loan_long %>% filter(!(Group %in% main_groups))
+
+p_1 <- ggplot() +
+  geom_boxplot(data = main_data, aes(x = Group, y = DefaultRate, fill = Group), alpha = 0.7) +
+  geom_jitter(data = extra_data, 
+              aes(x = "Other", y = DefaultRate, text = paste("Group:", Group, "<br>Default Rate:", percent(DefaultRate, 0.1))), 
+              color = "red", size = 2, width = 0.2, alpha = 0.8)+
+  scale_y_continuous(labels = percent_format(accuracy = 0.1)) +
+  theme_minimal()+
+  labs(
+    title = "Distribution of Student Loan Default Rates by Group",
+    x = "Group",
+    y = "Default Rate",
+    fill = "Group")
+
+ggplotly(p_1, tooltip = "text")
 ```
 
 
