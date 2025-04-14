@@ -17,6 +17,8 @@ library(ggplot2)
 library(scales)
 library(plotly)
 library(readxl)
+library(usmap)
+library(janitor)
 ```
 
 ```{r}
@@ -70,6 +72,8 @@ state_data <- StateLevelDebt |>
   )
 ```
 
+### Per state POC and and debt
+
 ```{r}
 state_data <- state_data |>
   mutate(
@@ -103,64 +107,7 @@ p <- ggplot(state_data, aes(
 ggplotly(p, tooltip = "text")
 ```
 
-```{r}
-state_data <- state_data |>
-  mutate(
-    loan_all = as.numeric(StudentLoanDefault_All),
-    loan_all = ifelse(loan_all > 1, loan_all / 100, loan_all),
-    loan_white = as.numeric(StudentLoanDefault_White),
-    loan_white = ifelse(loan_white > 1, loan_white / 100, loan_white),
-    loan_colored = as.numeric(StudentLoanDefault_Color),
-    loan_colored = ifelse(loan_colored > 1, loan_colored / 100, loan_colored)
-  )
-
-loan_long <- state_data |>
-  select(State_name, loan_all, loan_white, loan_colored) |>
-  pivot_longer(
-    cols = c(loan_all, loan_white, loan_colored),
-    names_to = "Group",
-    values_to = "DefaultRate"
-  )
-
-main_groups <- c("loan_white", "loan_colored", "loan_all")
-
-main_data <- main_data %>%
-  mutate(DefaultRatePercent = DefaultRate * 100)
-
-main_data <- loan_long %>%
-  mutate(Group = case_when(
-    Group == "loan_white" ~ "White Students",
-    Group == "loan_colored" ~ "Students of Color",
-    Group == "loan_all" ~ "All Students"
-  ))
-
-extra_data <- loan_long %>%
-  filter(!(Group %in% main_groups))
-
-main_data <- loan_long %>%
-  filter(Group %in% main_groups) %>%
-  mutate(Group = factor(Group,
-                        levels = c("loan_white", "loan_colored", "loan_all"),
-                        labels = c("White", "People of Color", "All")))
-extra_data <- loan_long %>% filter(!(Group %in% main_groups))
-
-p_1 <- ggplot() +
-  geom_boxplot(data = main_data, aes(x = Group, y = DefaultRatePercent, fill = Group), alpha = 0.7) +
-  geom_jitter(data = extra_data, 
-              aes(x = "Other", 
-                  y = DefaultRate, 
-                  text = paste("Group:", Group, "<br>Default Rate:", percent(DefaultRatePercent, 0.1))), 
-              color = "red", size = 2, width = 0.2, alpha = 0.8)+
-  scale_y_continuous(labels = function(x) paste0(x, "%")) +
-  theme_minimal()+
-  labs(
-    title = "Distribution of Student Loan Default Rates by Group",
-    x = "Group",
-    y = "Default Rate %",
-    fill = "Group")
-
-ggplotly(p_1, tooltip = "text")
-```
+#Per state boxplot
 
 ```{r}
 state_data <- state_data |>
@@ -214,6 +161,82 @@ p_1 <- ggplot() +
 ggplotly(p_1, tooltip = "text")
 ```
 
+### Maps 
+
+```{r}
+us_states <- us_map(regions = "states")
+ggplot(us_states) +
+  geom_sf()
+
+my_map_theme <- function(){
+theme(panel.background=element_blank(),
+axis.text=element_blank(),
+axis.ticks=element_blank(),
+axis.title=element_blank())
+}
+
+us_county <- us_map(regions = "counties")
+ggplot(us_county) +
+  geom_sf() +
+  my_map_theme()
+```
+
+
+### Federal student aid
+
+
+```{r}
+aid_portfolio <- read_excel("Project Data Sets/Federal student aid/aid_portfolio.xlsx", skip = 4)
+```
+
+```{r}
+colnames(aid_portfolio) <- c(
+  "fiscal_year", 
+  "quarter", 
+  "direct_loans", 
+  "direct_loan_recipients", 
+  "ffel", 
+  "ffel_recipients", 
+  "perkins_loans", 
+  "perkins_recipients", 
+  "total_outstanding", 
+  "undup_recipients"
+)
+aid_portfolio <- aid_portfolio[-c(1, 42, 43, 44, 45), ]
+```
+
+```{r}
+aid_portfolio <- aid_portfolio |>
+  mutate(across(direct_loans:undup_recipients, as.numeric))
+```
+
+```{r}
+aid_portfolio <- aid_portfolio |>
+  fill(fiscal_year, .direction = "down")
+```
+
+
+```{r}
+aid_portfolio <- aid_portfolio |>
+  mutate(
+    period = ifelse(
+      is.na(quarter), 
+      as.character(fiscal_year),
+      paste0(fiscal_year, " ", quarter)
+    )
+  )
+```
+
+
+```{r}
+ggplot(aid_portfolio, aes(x = period, y = direct_loans)) +
+  geom_bar(stat = "identity", fill = "grey") +
+  labs(title = "Student Direct Loan Recipients by Fiscal Year",
+       x = "Fiscal Year",
+       y = "Recipients (in millions)") +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 
 ## Including Plots
