@@ -107,6 +107,41 @@ p <- ggplot(state_data, aes(
 ggplotly(p, tooltip = "text")
 ```
 
+### State income and state debt all
+
+```{r}
+state_data <- state_data %>%
+  mutate(
+    Income_All = as.numeric(Income_All),
+    AnyDebt_All = as.numeric(AnyDebt_All),
+    AnyDebt_All = ifelse(AnyDebt_All > 1, AnyDebt_All / 100, AnyDebt_All))
+
+region_map <- data.frame(
+  State_name = state.name,
+  region = state.region)
+
+state_data <- state_data %>%
+  left_join(region_map, by = "State_name")
+
+income_debt <- ggplot(state_data, aes(x = Income_All, 
+                                      y = AnyDebt_All, 
+                                      label = State_name,
+                                      ))+
+  geom_smooth(aes(color = region), method = "lm", se = FALSE, size = 1.1)+
+  geom_point(size = 3, alpha = .7) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  scale_x_continuous(labels = dollar_format())+
+  labs(
+    title = "Income vs Share with Student Debt by State",
+    x = "Median Income (per state)",
+    y = "Share with Any Student Debt",
+    caption = "Dashed line: linear trend") +
+  theme_minimal()
+
+ggplotly(income_debt)
+```
+
+
 #Per state boxplot
 
 ```{r}
@@ -163,7 +198,7 @@ ggplotly(p_1, tooltip = "text")
 
 ### Maps 
 
-```{r}
+
 us_states <- us_map(regions = "states")
 ggplot(us_states) +
   geom_sf()
@@ -179,7 +214,7 @@ us_county <- us_map(regions = "counties")
 ggplot(us_county) +
   geom_sf() +
   my_map_theme()
-```
+
 
 
 ### Federal student aid
@@ -187,9 +222,7 @@ ggplot(us_county) +
 
 ```{r}
 aid_portfolio <- read_excel("Project Data Sets/Federal student aid/aid_portfolio.xlsx", skip = 4)
-```
 
-```{r}
 colnames(aid_portfolio) <- c(
   "fiscal_year", 
   "quarter", 
@@ -203,20 +236,13 @@ colnames(aid_portfolio) <- c(
   "undup_recipients"
 )
 aid_portfolio <- aid_portfolio[-c(1, 42, 43, 44, 45), ]
-```
 
-```{r}
 aid_portfolio <- aid_portfolio |>
   mutate(across(direct_loans:undup_recipients, as.numeric))
-```
 
-```{r}
 aid_portfolio <- aid_portfolio |>
   fill(fiscal_year, .direction = "down")
-```
 
-
-```{r}
 aid_portfolio <- aid_portfolio |>
   mutate(
     period = ifelse(
@@ -225,17 +251,55 @@ aid_portfolio <- aid_portfolio |>
       paste0(fiscal_year, " ", quarter)
     )
   )
-```
 
-
-```{r}
 ggplot(aid_portfolio, aes(x = period, y = direct_loans)) +
   geom_bar(stat = "identity", fill = "grey") +
   labs(title = "Student Direct Loan Recipients by Fiscal Year",
        x = "Fiscal Year",
        y = "Recipients (in millions)") +
   theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 50, hjust = 1))
+```
+
+
+
+
+### total loan types per year
+
+```{r}
+aid_portfolio <- aid_portfolio %>%
+  group_by(fiscal_year) %>%
+    mutate(
+    direct_loans_total = sum(direct_loans, na.rm = TRUE),
+    ffel_total = sum(ffel, na.rm = TRUE),
+    perkins_loans_total = sum(perkins_loans, na.rm = TRUE),
+    total_outstanding_annual = sum(total_outstanding, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+aid_portfolio <- aid_portfolio %>%
+  mutate(each_year = as.factor(fiscal_year))
+
+aid_long <- aid_portfolio |>
+  pivot_longer(
+    cols = c(direct_loans, ffel, perkins_loans),
+    names_to = "aid_type",
+    values_to = "total_balance"
+  )
+
+ggplot(aid_long, aes(x = fiscal_year, y = total_balance, fill = aid_type)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = comma) +
+  theme_minimal() +
+  labs(title = "Outstanding Aid Balances by Fiscal Year",
+       x = "Fiscal Year",
+       y = "Outstanding Balance (in billions)",
+       fill = "Aid Type")
+```
+
+
+```{r}
+ggplot(aid_portfolio)
 ```
 
 
